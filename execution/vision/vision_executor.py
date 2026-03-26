@@ -124,13 +124,12 @@ class VisionExecutor:
                 spoken_message="Camera stopped."
             )
 
-        if getattr(self.camera_detector, "_running", False):
+        start_message = self.camera_detector.start()
+        if start_message:
             return UnifiedResponse.success_response(
                 category="vision",
-                spoken_message="Camera is already running."
+                spoken_message=start_message
             )
-
-        self.camera_detector.start()
         start = time.time()
         while time.time() - start < 5:
             detections = self.camera_detector.get_latest_detections()

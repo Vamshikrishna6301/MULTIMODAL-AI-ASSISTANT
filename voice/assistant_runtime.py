@@ -31,6 +31,7 @@ class AssistantRuntime:
         self._listening_blocked_until = 0.0
         self._last_user_activity_at = 0.0
         self.focus_listener = None
+        self.shutdown_requested = False
 
     # =====================================================
     # STATE
@@ -157,5 +158,6 @@ class AssistantRuntime:
 
     def stop(self):
         with self._lock:
+            self.shutdown_requested = True
             self.state = AssistantState.SHUTTING_DOWN
             self.running = False

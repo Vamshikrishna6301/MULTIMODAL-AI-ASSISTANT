@@ -16,26 +16,38 @@ from execution.accessibility.accessibility_tree_builder import AccessibilityTree
 from execution.accessibility.nvda_reader import NVDAReader
 from execution.accessibility.navigation_state import NavigationState
 from execution.accessibility.output_filter import OutputFilter
+from execution.accessibility.safe_ui_scan import safe_scan
 from execution.accessibility.semantic_screen_analyzer import SemanticScreenAnalyzer
+from execution.accessibility.uia_client import uia_client
 from execution.accessibility.ui_element import UIElement
 from infrastructure.uia_dispatcher import dispatcher
 from infrastructure.logger import get_logger
 
 try:
-    import win32gui
-except Exception:  # pragma: no cover - import safety for non-Windows tests
-    win32gui = None
-
-try:
-    from pywinauto import Application, Desktop
-except Exception:  # pragma: no cover - import safety for non-Windows tests
-    Application = None
-    Desktop = None
-
-try:
     from pywinauto.keyboard import send_keys
 except Exception:  # pragma: no cover - import safety for non-Windows tests
     send_keys = None
+
+
+class _SafeChildAdapter:
+
+    def __init__(self, payload: dict):
+        self.payload = payload or {}
+
+    def window_text(self):
+        return self.payload.get("name") or ""
+
+    def friendly_class_name(self):
+        return self.payload.get("control_type") or self.payload.get("role") or "Element"
+
+
+class _SafeWindowAdapter:
+
+    def __init__(self, payloads: List[dict]):
+        self.payloads = payloads or []
+
+    def children(self):
+        return [_SafeChildAdapter(item) for item in self.payloads[:30]]
 
 
 class UIElementWrapper:
@@ -58,9 +70,11 @@ class UIElementWrapper:
         "Text": "Text",
     }
 
-    def __init__(self, element: Any, index: int):
+    def __init__(self, element: Any, index: int, runtime: Any = None):
         self.element = element
         self.index = index
+        self.runtime = runtime
+        self.locator = self._safe_locator()
         self.name = self._safe_name()
         self.role = self._safe_role()
         self.control_type = self.role
@@ -69,6 +83,8 @@ class UIElementWrapper:
         self.region = self._infer_region()
 
     def _safe_name(self) -> str:
+        if isinstance(self.element, dict):
+            return str(self.element.get("name") or "Unknown")
         try:
             return (
                 self.element.element_info.name
@@ -87,6 +103,8 @@ class UIElementWrapper:
         return "Unknown"
 
     def _safe_role(self) -> str:
+        if isinstance(self.element, dict):
+            return str(self.element.get("control_type") or self.element.get("role") or "Element")
         try:
             return self.element.friendly_class_name()
         except Exception:
@@ -110,6 +128,8 @@ class UIElementWrapper:
         return None
 
     def _safe_automation_id(self) -> str:
+        if isinstance(self.element, dict):
+            return str(self.element.get("automation_id") or "")
         try:
             return self.element.element_info.automation_id or ""
         except Exception:
@@ -123,11 +143,11 @@ class UIElementWrapper:
         return ""
 
     def _safe_bounding_rect(self):
-        try:
-            rect = self.element.rectangle()
-            return (rect.left, rect.top, rect.right, rect.bottom)
-        except Exception:
-            pass
+        if self.runtime is not None and getattr(self.runtime, "shutdown_requested", False):
+            return None
+        if isinstance(self.element, dict):
+            rect = self.element.get("bounding_rect")
+            return tuple(rect) if rect else None
         try:
             rect = getattr(self.element, "CurrentBoundingRectangle", None)
             if rect is not None:
@@ -136,6 +156,16 @@ class UIElementWrapper:
             pass
         return None
 
+    def _safe_locator(self):
+        if isinstance(self.element, dict):
+            return dict(self.element.get("locator") or {})
+        return {
+            "name": self._safe_name(),
+            "role": self._safe_role(),
+            "automation_id": self._safe_automation_id(),
+            "bounding_rect": self._safe_bounding_rect(),
+        }
+
     def speakable(self) -> str:
         role = self.ROLE_MAP.get(self.role, self.role)
         if self.name:
@@ -143,19 +173,19 @@ class UIElementWrapper:
         return role
 
     def set_focus(self) -> None:
+        if self.runtime is not None and getattr(self.runtime, "shutdown_requested", False):
+            return
         try:
-            dispatcher.call(self.element.set_focus)
+            uia_client.call("set_focus", locator=self.locator)
         except Exception:
             pass
 
     def click(self) -> None:
-        try:
-            dispatcher.call(self.element.invoke)
+        if self.runtime is not None and getattr(self.runtime, "shutdown_requested", False):
             return
-        except Exception:
-            pass
         try:
-            dispatcher.call(self.element.click_input)
+            uia_client.call("invoke", locator=self.locator)
+            return
         except Exception:
             pass
 
@@ -245,71 +275,58 @@ class AccessibilityNavigator:
         try:
             window = self._get_active_window()
             if window is not None:
-                return window.window_text()
+                return self._window_title(window)
         except Exception:
             pass
         return self.state.window or "Unknown window"
 
     def _get_active_window(self):
-        if self._cached_window is not None:
+        if self._shutdown_requested():
             return self._cached_window
-        executor = ThreadPoolExecutor(max_workers=1)
         try:
-            future = executor.submit(dispatcher.call, self._get_active_window_internal)
-            window = future.result(timeout=0.6)
+            window = uia_client.call("active_window", timeout=0.6)
             if window is not None:
                 self._cached_window = window
+                self._cached_hwnd = window.get("hwnd")
             return window
-        except TimeoutError:
-            return self._cached_window
         except Exception:
             return self._cached_window
-        finally:
-            executor.shutdown(wait=False, cancel_futures=True)
 
     def _window_name_internal(self) -> str:
-        return self._get_active_window_internal().window_text()
+        window = self._get_active_window_internal()
+        return self._window_title(window)
 
     def _get_active_window_internal(self):
-        self._nav_trace("_get_active_window start")
-        if win32gui is None or Application is None:
-            raise RuntimeError("Windows UI automation is unavailable.")
-        hwnd = win32gui.GetForegroundWindow()
-        self._nav_trace(f"_get_active_window hwnd={hwnd}")
-        if self._cached_hwnd != hwnd:
-            self._cached_hwnd = hwnd
-            self._cached_window = None
-            self._cached_element_scan = []
-            self._cached_element_scan_at = 0.0
-        if self._cached_window is not None:
-            return self._cached_window
-        app = Application(backend="uia").connect(handle=hwnd)
-        self._nav_trace("_get_active_window connected")
-        self._cached_window = app.window(handle=hwnd)
+        window = uia_client.call("active_window", timeout=0.6)
+        if window is not None:
+            if self._cached_hwnd != window.get("hwnd"):
+                self._cached_element_scan = []
+                self._cached_element_scan_at = 0.0
+            self._cached_hwnd = window.get("hwnd")
+            self._cached_window = window
         return self._cached_window
 
     def _get_focused(self):
-        executor = ThreadPoolExecutor(max_workers=1)
-        try:
-            future = executor.submit(self._get_focused_internal)
-            return future.result(timeout=0.4)
-        except TimeoutError:
+        if self._shutdown_requested():
             return self.state.current()
+        try:
+            focused = self._get_focused_internal()
+            return focused or self.state.current()
         except Exception:
             return self.state.current()
-        finally:
-            executor.shutdown(wait=False, cancel_futures=True)
 
     def _get_focused_internal(self):
         self._nav_trace("_get_focused start")
-        if Desktop is None:
-            return None
         try:
-            focused = Desktop(backend="uia").get_focus()
+            if self._shutdown_requested():
+                return None
+            focused = uia_client.call("get_focus", timeout=0.4)
         except Exception:
             return None
+        if focused is None:
+            return None
         self._nav_trace("_get_focused resolved")
-        return UIElementWrapper(focused, -1)
+        return UIElementWrapper(focused, -1, runtime=self.runtime)
 
     def _announce_text(self, text: str) -> Optional[str]:
         filtered = self.output_filter.clean(text)
@@ -323,6 +340,20 @@ class AccessibilityNavigator:
 
     def _current_window_name(self) -> str:
         return self.state.window or self._window_name() or "current window"
+
+    def _window_title(self, window: Any) -> str:
+        if isinstance(window, dict):
+            return str(window.get("title") or "Unknown window")
+        title = getattr(window, "window_text", None)
+        if callable(title):
+            try:
+                return title() or "Unknown window"
+            except Exception:
+                return "Unknown window"
+        return "Unknown window"
+
+    def _shutdown_requested(self) -> bool:
+        return bool(self.runtime and getattr(self.runtime, "shutdown_requested", False))
 
     def _cached_snapshot(self):
         return self.snapshot_cache.get(self._current_window_name())
@@ -383,7 +414,11 @@ class AccessibilityNavigator:
             if focused is None or window is None:
                 return None
 
-            title = self._clean_speech(window.window_text(), "current window")
+            vscode_message = self._vscode_accessibility_message(focused)
+            if vscode_message:
+                return vscode_message
+
+            title = self._clean_speech(self._window_title(window), "current window")
             role = self._clean_speech(
                 getattr(focused, "control_type", None) or getattr(focused, "role", None) or "Element"
             )
@@ -403,10 +438,22 @@ class AccessibilityNavigator:
         except Exception:
             return None
 
-        title = self._clean_speech(window.window_text(), "current window")
+        title = self._clean_speech(self._window_title(window), "current window")
 
         try:
-            children = window.children()[: self.MAX_CHILDREN]
+            if self._shutdown_requested():
+                return f"You're currently in {title}."
+            children = uia_client.call(
+                "scan_children",
+                timeout=1.2,
+                max_depth=1,
+                max_children=self.MAX_CHILDREN,
+                interactive_only=False,
+            )
+            children = [
+                UIElementWrapper(child, idx, runtime=self.runtime)
+                for idx, child in enumerate(children or [])
+            ][: self.MAX_CHILDREN]
         except Exception:
             children = []
 
@@ -417,10 +464,10 @@ class AccessibilityNavigator:
 
         for child in children:
             try:
-                role = self._clean_speech(child.friendly_class_name())
-                name = self._clean_speech(
-                    child.element_info.name or child.window_text() or child.element_info.class_name
-                ).lower()
+                role = self._clean_speech(
+                    getattr(child, "control_type", None) or getattr(child, "role", None) or "Element"
+                )
+                name = self._clean_speech(getattr(child, "name", None), "").lower()
             except Exception:
                 continue
 
@@ -449,6 +496,8 @@ class AccessibilityNavigator:
         return " ".join(parts)
 
     def _focus_element(self, element: Any) -> bool:
+        if self._shutdown_requested():
+            return False
         if element is None:
             return False
         setter = getattr(element, "set_focus", None)
@@ -488,7 +537,11 @@ class AccessibilityNavigator:
             if not window:
                 return "I cannot determine the current screen."
 
-            title = window.window_text()
+            vscode_message = self._vscode_accessibility_message(focused)
+            if vscode_message:
+                return vscode_message
+
+            title = self._window_title(window)
 
             return self.semantic_analyzer.analyze(title, focused)
         except Exception:
@@ -511,46 +564,38 @@ class AccessibilityNavigator:
         ):
             return list(self._cached_element_scan)
 
+        started = time.perf_counter()
+        payload = uia_client.call(
+            "scan_children",
+            timeout=self.SCAN_TIMEOUT,
+            max_depth=6,
+            max_children=self.MAX_CHILDREN,
+            interactive_only=True,
+        ) or []
         elements = []
         seen = set()
-
-        def walk(node, depth):
-            if depth > 6 or len(elements) >= 250:
-                return
-
-            try:
-                role = node.friendly_class_name()
-                name = node.element_info.name or node.window_text() or ""
-                automation_id = getattr(node.element_info, "automation_id", "") or ""
-                normalized_name = re.sub(r"[^\w\s]", "", str(name).lower()).strip()
-                key = f"{role}:{normalized_name}:{automation_id}"
-
-                if (
-                    role in self.INTERACTIVE_SCAN_ROLES
-                    and normalized_name
-                    and normalized_name not in self.WINDOW_CONTROL_NAMES
-                    and key not in seen
-                ):
-                    seen.add(key)
-                    elements.append(UIElementWrapper(node, len(elements)))
-            except Exception:
-                pass
-
-            try:
-                for child in node.children():
-                    walk(child, depth + 1)
-            except Exception:
-                pass
-
-        started = time.perf_counter()
-        walk(window, 0)
+        for item in payload:
+            role = item.get("control_type", "")
+            name = item.get("name", "")
+            automation_id = item.get("automation_id", "")
+            normalized_name = re.sub(r"[^\w\s]", "", str(name).lower()).strip()
+            key = f"{role}:{normalized_name}:{automation_id}"
+            if (
+                role in self.INTERACTIVE_SCAN_ROLES
+                and normalized_name
+                and normalized_name not in self.WINDOW_CONTROL_NAMES
+                and key not in seen
+            ):
+                seen.add(key)
+                elements.append(UIElementWrapper(item, len(elements), runtime=self.runtime))
         self._cached_element_scan = elements
         self._cached_element_scan_at = now
-        self.state.load(window.window_text(), elements)
-        self.tree.load(window.window_text(), elements)
+        window_title = self._window_title(window)
+        self.state.load(window_title, elements)
+        self.tree.load(window_title, elements)
         self.logger.info(
             "TREE_REBUILT",
-            window=window.window_text(),
+            window=window_title,
             element_count=len(elements),
             depth=6,
         )
@@ -568,6 +613,8 @@ class AccessibilityNavigator:
         return self.tree
 
     def _collect_elements(self) -> Tuple[str, List[UIElementWrapper]]:
+        if self._shutdown_requested():
+            return self.state.window or "Unknown window", list(self.state.elements or [])
         executor = ThreadPoolExecutor(max_workers=1)
         try:
             future = executor.submit(dispatcher.call, self._collect_elements_internal)
@@ -593,70 +640,45 @@ class AccessibilityNavigator:
             return self._collect_elements_from_uia_client()
 
         self._uia_trace("UI scan started")
-        elements: List[UIElementWrapper] = []
+        payload = uia_client.call(
+            "scan_children",
+            timeout=self.SCAN_TIMEOUT,
+            max_depth=1,
+            max_children=30,
+            interactive_only=False,
+        ) or []
+        window_adapter = _SafeWindowAdapter(payload)
+        scanned = safe_scan(window_adapter)
+        elements: List[UIElement] = []
         seen = set()
-        queue = [(window, 0)]
-        visited = 0
-        start_time = time.perf_counter()
-
-        while queue and visited < self.MAX_SCAN_NODES:
-            if (time.perf_counter() - start_time) > self.SCAN_TIMEOUT:
-                break
-
-            current, depth = queue.pop(0)
-            visited += 1
-            self._uia_trace(f"scanning node {visited}")
-
-            try:
-                role = current.friendly_class_name()
-            except Exception:
-                role = "Unknown"
-
-            try:
-                name = current.element_info.name or current.window_text() or ""
-            except Exception:
-                name = ""
-
-            try:
-                self._uia_trace(f"element role={role} name={name}")
-                lower_name = name.lower()
-
-                if "toggle screen reader accessibility mode" in lower_name:
-                    continue
-                if "run the command" in lower_name:
-                    continue
-
-                key = f"{role}:{name}"
-                if (
-                    role in self.SAFE_ROLES
-                    and name
-                    and lower_name not in self.WINDOW_CONTROL_NAMES
-                    and len(name) < 160
-                    and key not in seen
-                ):
-                    seen.add(key)
-                    elements.append(UIElementWrapper(current, len(elements)))
-                    self._uia_trace(f"accepted element #{len(elements)}")
-                    if len(elements) >= 10:
-                        break
-            except Exception:
-                pass
-
-            try:
-                self._uia_trace("retrieving children")
-                if depth >= self.MAX_SCAN_DEPTH:
-                    children = []
-                else:
-                    children = current.children()[: self.MAX_CHILDREN]
-                self._uia_trace(f"children count={len(children)}")
-                for child in children:
-                    queue.append((child, depth + 1))
-            except Exception:
-                pass
+        for index, (role, name) in enumerate(scanned[:30]):
+            self._uia_trace(f"element role={role} name={name}")
+            lower_name = (name or "").lower()
+            if "toggle screen reader accessibility mode" in lower_name:
+                continue
+            if "run the command" in lower_name:
+                continue
+            key = f"{role}:{name}"
+            if (
+                role in self.SAFE_ROLES
+                and name
+                and lower_name not in self.WINDOW_CONTROL_NAMES
+                and len(name) < 160
+                and key not in seen
+            ):
+                seen.add(key)
+                elements.append(
+                    UIElement(
+                        name=name,
+                        control_type=role,
+                        index=index,
+                    )
+                )
+                self._uia_trace(f"accepted element #{len(elements)}")
 
         self._uia_trace("UI scan finished")
         self._nav_trace(f"elements found: {len(elements)}")
-        return window.window_text(), elements
+        return self._window_title(window), elements
 
     def _collect_elements_from_uia_client(self) -> Tuple[str, List[UIElement]]:
         if not self.uia_client:
@@ -692,6 +714,14 @@ class AccessibilityNavigator:
 
     def _set_reader_metadata(self, metadata: Optional[dict]) -> None:
         self.last_accessibility_metadata = dict(metadata or {})
+
+    def _vscode_accessibility_message(self, focused: Optional[Any]) -> Optional[str]:
+        if focused is None:
+            return None
+        text = self._clean_speech(getattr(focused, "name", None), "").lower()
+        if "editor is not accessible" in text:
+            return "VS Code accessibility mode is disabled. Press Shift + Alt + F1 to enable screen reader mode."
+        return None
 
     def consume_metadata(self) -> dict:
         metadata = dict(self.last_accessibility_metadata or {})
@@ -735,7 +765,7 @@ class AccessibilityNavigator:
         try:
             window = self._get_active_window()
             focused = self._get_focused() or self.state.current()
-            title = self._clean_speech(window.window_text(), "current window") if window else "current window"
+            title = self._clean_speech(self._window_title(window), "current window") if window else "current window"
             if focused is not None:
                 role = self._clean_speech(
                     getattr(focused, "control_type", None) or getattr(focused, "role", None) or "Element"
@@ -839,7 +869,7 @@ class AccessibilityNavigator:
             future = executor.submit(dispatcher.call, self._read_screen_internal, stop_event=stop_event)
 
             try:
-                payload = future.result(timeout=self.READ_SCREEN_TIMEOUT)
+                payload = future.result(timeout=1.2)
                 self._nav_trace("worker finished")
                 return payload
             except TimeoutError:
@@ -848,10 +878,10 @@ class AccessibilityNavigator:
                 self._nav_trace("read_screen worker timeout")
                 self.logger.debug(
                     "read_screen_timeout",
-                    timeout_seconds=self.READ_SCREEN_TIMEOUT,
+                    timeout_seconds=1.2,
                 )
                 self._set_reader_metadata({})
-                return [], f"I couldn't fully scan the screen, but I can tell you the current window. {self._fallback_focus()}"
+                return [], self._fallback_focus()
             except Exception as exc:
                 self.logger.error("read_screen_failed", exception=exc)
                 self._set_reader_metadata({})
@@ -890,6 +920,11 @@ class AccessibilityNavigator:
         return self._result_message(result)
 
     def read_current(self):
+        focused = self._get_focused() or self.state.current()
+        vscode_message = self._vscode_accessibility_message(focused)
+        if vscode_message:
+            self._set_reader_metadata({})
+            return vscode_message
         result = self.orchestrator.execute(NavigationCommand(action="read_current"))
         fallback = self._result_message(result)
         return self._nvda_focus_message(result, fallback=fallback)

@@ -323,6 +323,12 @@ class Dispatcher:
             )
         finally:
             latency = (time.perf_counter() - start_time) * 1000
+            if latency > 2000:
+                self.debug_logger.warning(
+                    "dispatcher_slow_execution",
+                    action=action,
+                    latency_ms=round(latency, 2),
+                )
             self.debug_logger.debug(
                 "dispatcher_exit",
                 action=action,

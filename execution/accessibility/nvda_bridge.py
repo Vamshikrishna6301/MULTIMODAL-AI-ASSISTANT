@@ -1,6 +1,7 @@
 import win32gui
 from pywinauto import Application
 from pywinauto.keyboard import send_keys
+from execution.accessibility.safe_ui_scan import safe_scan
 
 
 class NVDABridge:
@@ -21,27 +22,14 @@ class NVDABridge:
 
         window = self._get_active_window()
 
-        elements = window.descendants()
-
         important = []
-
-        for el in elements:
-
-            try:
-                name = el.window_text()
-                role = el.friendly_class_name()
-
-                if role in ["Button", "Edit", "Hyperlink", "Text", "MenuItem"]:
-
-                    if name:
-                        important.append({
-                            "type": role,
-                            "name": name,
-                            "element": el
-                        })
-
-            except:
-                pass
+        for role, name in safe_scan(window):
+            if role in ["Button", "Edit", "Hyperlink", "Text", "MenuItem"] and name:
+                important.append({
+                    "type": role,
+                    "name": name,
+                    "element": None
+                })
 
         self.current_elements = important
         self.current_index = 0
@@ -75,6 +63,8 @@ class NVDABridge:
         element = self.current_elements[self.current_index]["element"]
 
         try:
+            if element is None:
+                return "Activation failed"
             element.click_input()
             return "Activated"
         except:

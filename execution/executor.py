@@ -273,22 +273,14 @@ class ExecutionEngine:
     # =====================================================
 
     def _nav(self, func):
-        executor = ThreadPoolExecutor(max_workers=1)
         try:
-            future = executor.submit(func)
-            speech = future.result(timeout=0.5)
-        except TimeoutError:
-            return UnifiedResponse.success_response(
-                category="accessibility",
-                spoken_message="Navigation is still in progress.",
-                metadata={"navigation_async": True}
-            )
-        finally:
-            executor.shutdown(wait=False, cancel_futures=True)
+            speech = func()
+        except Exception:
+            speech = None
 
         return UnifiedResponse.success_response(
             category="accessibility",
-            spoken_message=speech,
+            spoken_message=speech or "No accessible element found.",
             metadata=self.navigator.consume_metadata()
         )
 

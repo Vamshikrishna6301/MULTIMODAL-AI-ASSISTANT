@@ -1,7 +1,7 @@
 import threading
 import time
 
-from pywinauto import Desktop
+from execution.accessibility.uia_client import uia_client
 
 
 class FocusEventMonitor:
@@ -39,16 +39,11 @@ class FocusEventMonitor:
     def _get_focused_element(self):
 
         try:
-
-            element = Desktop(backend="uia").get_focus()
-
-            role = element.friendly_class_name()
-
-            name = (
-                element.element_info.name
-                or element.window_text()
-                or element.element_info.class_name
-            )
+            element = uia_client.call("get_focus", timeout=0.4)
+            if not isinstance(element, dict):
+                return None
+            role = element.get("control_type") or element.get("role") or "Element"
+            name = element.get("name") or "Unnamed element"
 
             if not name:
                 name = "Unnamed element"

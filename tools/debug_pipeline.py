@@ -3,94 +3,53 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import time
-import queue
-import threading
+import traceback
+from infrastructure.logger import get_logger
 
-from voice.voice_loop import VoiceLoop
-from voice.assistant_runtime import AssistantRuntime
-
-
-def banner(msg):
-    print("\n" + "=" * 60)
-    print(msg)
-    print("=" * 60)
+logger = get_logger("debug.navigation_runtime")
 
 
-class TracedVoiceLoop(VoiceLoop):
+class NavigationRuntimeDebugger:
+    """
+    Tracks repeated navigation execution and TTS loops.
+    """
 
-    def _handle_intent(self, text: str):
-        print("\n[INTENT WORKER] Processing:", text)
+    def __init__(self):
+        self.last_message = None
+        self.last_time = 0
+        self.repeat_count = 0
 
-        decision = self.fusion.process_text(text)
-        decision_dict = decision.to_dict()
+    def log_tts(self, message):
 
-        print("[INTENT WORKER] Decision:", decision_dict)
+        now = time.time()
 
-        status = decision_dict.get("status")
-
-        if status == "APPROVED":
-            print("[INTENT WORKER] Queue size before:", self.command_queue.qsize())
-
-            try:
-                self.command_queue.put(decision_dict, timeout=1)
-                print("[INTENT WORKER] Command queued")
-
-            except queue.Full:
-                print("[INTENT WORKER] COMMAND QUEUE FULL")
-
+        if message == self.last_message:
+            self.repeat_count += 1
         else:
-            print("[INTENT WORKER] Not approved")
+            self.repeat_count = 0
 
+        self.last_message = message
+        self.last_time = now
 
-    def _execution_worker(self):
-        import pythoncom
-        pythoncom.CoInitialize()
+        logger.debug(
+            "TTS_EVENT",
+            message=message,
+            repeat_count=self.repeat_count,
+            timestamp=now
+        )
 
-        print("\n[EXECUTION WORKER] Started")
+        if self.repeat_count > 5:
+            logger.error(
+                "TTS_LOOP_DETECTED",
+                message=message,
+                repeat_count=self.repeat_count
+            )
 
-        try:
-            while self.runtime.running:
+    def log_navigation_call(self, action):
 
-                try:
-                    decision_dict = self.command_queue.get(timeout=1)
-                except queue.Empty:
-                    continue
-
-                print("\n[EXECUTION WORKER] Received:", decision_dict)
-
-                response = self.router.route(decision_dict)
-
-                print("[EXECUTION WORKER] Response:", response)
-
-                if response and hasattr(response, "spoken_message"):
-                    msg = response.spoken_message
-
-                    print("Assistant:", msg)
-
-                    if msg:
-                        self.tts.speak(msg)
-
-        finally:
-            pythoncom.CoUninitialize()
-
-
-def run():
-    banner("VOICE PIPELINE TRACE")
-
-    runtime = AssistantRuntime()
-    assistant = TracedVoiceLoop(runtime)
-
-    assistant._start_threads()
-
-    while True:
-
-        cmd = input("\nCommand> ")
-
-        if cmd == "exit":
-            break
-
-        assistant.text_queue.put(cmd)
-
-
-if __name__ == "__main__":
-    run()
+        logger.debug(
+            "NAVIGATION_CALL",
+            action=action,
+            timestamp=time.time(),
+            stack="".join(traceback.format_stack(limit=6))
+        )

@@ -65,7 +65,7 @@ class CameraDetector:
         with self._state_lock:
             if self._running or (self._thread and self._thread.is_alive()):
                 print("Camera already running.")
-                return
+                return "Camera is already running."
 
             self._running = True
             self._thread = threading.Thread(
@@ -73,6 +73,7 @@ class CameraDetector:
                 daemon=True,
             )
             self._thread.start()
+        return None
 
     def stop(self):
         with self._state_lock:

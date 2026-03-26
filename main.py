@@ -215,6 +215,7 @@ def cleanup_on_shutdown():
     print("\n🛑 Shutting down application...\n")
 
     try:
+        from execution.accessibility.uia_client import uia_client
 
         if _focus_listener:
             _focus_listener.stop()
@@ -227,6 +228,8 @@ def cleanup_on_shutdown():
 
         if _recovery_manager:
             _recovery_manager.mark_shutdown()
+
+        uia_client.stop_worker()
 
         print("✅ Shutdown complete")
 

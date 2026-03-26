@@ -94,7 +94,7 @@ KRISHNA/
 |
 |-- core/
 |   |-- context_memory.py
-|   |-- fusion_engine.py
+              |   |-- fusion_engine.py
 |   |-- intent_parser.py
 |   |-- intent_schema.py
 |   |-- mode_manager.py

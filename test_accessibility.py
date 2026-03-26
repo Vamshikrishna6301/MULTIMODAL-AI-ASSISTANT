@@ -1,5 +1,6 @@
 import win32gui
 from pywinauto import Application
+from execution.accessibility.safe_ui_scan import safe_scan
 
 # get the handle of the currently focused window
 hwnd = win32gui.GetForegroundWindow()
@@ -11,16 +12,7 @@ window = app.window(handle=hwnd)
 
 print("Active Window:", window.window_text())
 
-elements = window.descendants()
-
 print("\nFirst 20 UI elements:\n")
-
-for el in elements[:20]:
-    try:
-        name = el.window_text()
-        role = el.friendly_class_name()
-
-        if name:
-            print(role, ":", name)
-    except:
-        pass
+for role, name in safe_scan(window)[:20]:
+    if name:
+        print(role, ":", name)
