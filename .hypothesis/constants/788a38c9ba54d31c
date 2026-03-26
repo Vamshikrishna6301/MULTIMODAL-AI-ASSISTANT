@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\core\safety_rules.py
+# hypothesis_version: 6.151.9
+
+[0.85, 'Permanent data loss', 'System modification', 'System state change', 'System termination', 'Unknown risk', 'action', 'actions', 'all', 'allow', 'always', 'application', 'apps', 'blocked_reason', 'calculator', 'chrome', 'close', 'compound', 'condition', 'delete', 'delete all', 'description', 'disable', 'documents', 'domain', 'downloads', 'filesystem', 'format', 'format drive', 'is_blocked', 'notepad', 'open', 'paths', 'pattern', 'read', 'reason', 'remove user', 'restart', 'risk', 'risk_level', 'shutdown', 'system', 'system shutdown', 'system32', 'uninstall', 'windows', 'write']

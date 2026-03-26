@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\execution\vision\vision_executor.py
+# hypothesis_version: 6.151.9
+
+[0.3, 'Camera stopped.', 'INVALID_CAMERA_TASK', 'Invalid camera task.', 'STOP_CAMERA', 'VISION_ERROR', 'VISION_MODE_ERROR', 'action', 'analyze_scene', 'camera', 'describe', 'detect_objects', 'execution', 'keywords_detected', 'monitor_screen', 'parameters', 'read_text', 'screen', 'target', 'task', 'unknown', 'vision']

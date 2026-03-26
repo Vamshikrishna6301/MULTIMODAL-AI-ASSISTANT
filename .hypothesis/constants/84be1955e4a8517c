@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\core\mode_manager.py
+# hypothesis_version: 6.151.9
+
+[0.0, 100, 'WAITING_CONFIRMATION', 'cancel', 'command_completed', 'command_detected', 'confirm', 'disable_command', 'do it', 'enable_assistant', 'exit_dictation', 'no', 'question_answered', 'question_detected', 'stop', 'switch_to_command', 'switch_to_dictation', 'unknown', 'yes']

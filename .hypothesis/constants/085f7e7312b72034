@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\execution\vision\screen_monitoring_engine.py
+# hypothesis_version: 6.151.9
+
+[5.0, 100, 'alert', 'current_text', 'disconnected', 'error', 'exception', 'failed', 'invalid', 'keywords_detected', 'screen_changed', 'text_changed', 'timeout', 'warning']

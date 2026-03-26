@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\core\fusion_engine.py
+# hypothesis_version: 6.151.9
+
+[0.4, 1000, 'APPROVED', 'Action approved', 'Action cancelled', 'Action confirmed', 'BLOCKED', 'Low confidence input', 'NEEDS_CONFIRMATION', 'SYSTEM_CONTROL', 'UNKNOWN', 'action', 'blocked_reason', 'cancel', 'confirm', 'confirmed', 'disable', 'disable_command', 'enable', 'enable_assistant', 'enter dictation', 'exit dictation', 'exit_dictation', 'latency_ms', 'message', 'no', 'parameters', 'proceed', 'risk_level', 'shutdown', 'status', 'stop', 'target', 'yes']

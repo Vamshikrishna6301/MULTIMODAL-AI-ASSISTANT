@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\utility\utility_engine.py
+# hypothesis_version: 6.151.9
+
+['%I:%M %p', '*', '**', '+', '-', '/', 'CALCULATE', 'CALCULATION_ERROR', 'GET_TIME', 'INVALID_EXPRESSION', 'NO_EXPRESSION', 'UTILITY_UNSUPPORTED', '\\s+', '^', '__', '__builtins__', 'abs', 'action', 'divided by', 'e', 'into', 'minus', 'multiplied by', 'pi', 'plus', 'round', 'target', 'times', 'utility']

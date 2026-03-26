@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\execution\adapters\windows_system.py
+# hypothesis_version: 6.151.9
+
+['CLOSE_FAILED', 'NO_TARGET', 'PROCESS_NOT_FOUND', 'SYSTEM_CONTROL', 'SYSTEM_UNSUPPORTED', 'System restarting.', 'action', 'execution', 'restart', 'shutdown', 'shutdown /r /t 5', 'shutdown /s /t 5', 'target', 'text']

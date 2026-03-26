@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\execution\vision\vision_mode_controller.py
+# hypothesis_version: 6.151.9
+
+['A person has ', 'A person has entered', 'A person has left', 'ALERT', 'Door opened', 'Motion detected', 'Obstacle ahead', 'PASSIVE', 'SAFETY', 'SILENT', 'door_opened', 'entered', 'fall', 'fire', 'left', 'message', 'motion_detected', 'obstacle_detected', 'person', 'person_entered', 'person_exited', 'smoke', 'type']

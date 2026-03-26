@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\execution\vision\camera_detector.py
+# hypothesis_version: 6.151.9
+
+[0.6, 0.65, 3.5, 255, 'Assistant Camera', 'bbox', 'confidence', 'cpu', 'label', 'q', 'yolov8n.pt', '📷 Camera started.', '📷 Camera stopped.', '🛑 Stopping camera...']

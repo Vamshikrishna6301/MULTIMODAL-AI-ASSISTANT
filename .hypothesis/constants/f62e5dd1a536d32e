@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\execution\vision\ocr_engine.py
+# hypothesis_version: 6.151.9
+
+[150, 255, '100%', '^[A-Za-z]{1,2}\\s+', 'chrome', 'col', 'file edit view', 'ln', 'plain text', 'recycle bin', 'search', 'utf-8', 'windows']

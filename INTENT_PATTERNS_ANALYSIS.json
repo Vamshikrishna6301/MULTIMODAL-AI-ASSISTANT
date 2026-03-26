@@ -1,0 +1,578 @@
+{
+  "analysis_date": "2026-02-19",
+  "projects_reviewed": [
+    "Mycroft AI (MycroftAI/mycroft-core)",
+    "Home Assistant (home-assistant/core)",
+    "OpenAssistant (LAION-AI/Open-Assistant)"
+  ],
+  "note": "RASA analysis limited to documentation references - code patterns primarily extracted from Mycroft, Home Assistant, and OpenAssistant",
+  
+  "1_mycroft_ai": {
+    "framework": "Mycroft Core Voice Assistant",
+    "url": "https://github.com/MycroftAI/mycroft-core",
+    
+    "intent_representation": {
+      "main_classes": [
+        "IntentBuilder - Fluent API for building intent patterns",
+        "AdaptIntent - Wrapper extending IntentBuilder",
+        "IntentMatch - Result wrapper containing matched intent",
+        "Intent - Core intent parser object from Adapt library"
+      ],
+      "code_pattern": {
+        "example": "IntentBuilder('my_intent').require('Keyword').build()",
+        "format": "Requires required keywords and optional optional keywords"
+      },
+      "intent_data_structure": {
+        "intent_type": "string (format: 'skill_id:intent_name')",
+        "intent_name": "string",
+        "confidence": "float (0.0-1.0)",
+        "utterance": "string",
+        "__tags__": "list of entity tags",
+        "entities": "extracted keyword entities"
+      }
+    },
+
+    "confidence_scoring_mechanisms": {
+      "approach": "Multi-tiered confidence system via PadatiousMatcher",
+      "levels": {
+        "high_confidence": 0.95,
+        "medium_confidence": 0.8,
+        "low_confidence": 0.5
+      },
+      "scoring_algorithm": "PadatiousMatcher._match_level(utterances, limit)",
+      "best_match_selection": "max(intents, key=lambda x: x.get('confidence', 0.0))",
+      "code_snippet": {
+        "padatious_high": "padatious_matcher.match_high() # confidence > 0.95",
+        "padatious_medium": "padatious_matcher.match_medium() # confidence > 0.8",
+        "padatious_low": "padatious_matcher.match_low() # confidence > 0.5"
+      }
+    },
+
+    "intent_parsing_services": {
+      "primary_services": [
+        "Adapt Service - Keyword/regex-based matching",
+        "Padatious Service - Neural intent recognition",
+        "Fallback Service - Handles no-match scenarios"
+      ],
+      "matching_priority_order": [
+        "padatious_matcher.match_high",
+        "adapt_service.match_intent",
+        "padatious_matcher.match_medium",
+        "padatious_matcher.match_low"
+      ]
+    },
+
+    "entity_extraction": {
+      "methods": [
+        "Keyword registration: register_vocabulary(entity, entity_type)",
+        "Regex-based: register_regex(regex_str)",
+        "Vocabulary files: .voc files in skill directories",
+        "Context manager: Maintains entity context across exchanges"
+      ],
+      "vocab_file_format": "Pipe-delimited alternatives per line",
+      "regex_file_format": ".rx files with named groups: (?P<EntityName>pattern)"
+    },
+
+    "context_management": {
+      "class": "ContextManager(timeout)",
+      "features": [
+        "Frame stack with configurable max_frames",
+        "Context injection and removal",
+        "Timeout-based context expiration",
+        "Greedy vs selective context modes"
+      ],
+      "config_options": {
+        "keywords": "list - Context keywords to track",
+        "max_frames": "int - Maximum context frames (default 3)",
+        "timeout": "int - Context timeout in seconds (default 2)",
+        "greedy": "bool - Always inject context or selective"
+      }
+    },
+
+    "finite_state_machine_patterns": {
+      "active_skills_tracking": [
+        "maintaining [skill_id, timestamp] pairs",
+        "timeout-based skill pruning (5 minutes default)",
+        "active skill state transitions"
+      ],
+      "state_transitions": {
+        "no_match": "complete_intent_failure event",
+        "match_found": "set active_skill and emit intent",
+        "converse_possible": "check if skill wants to handle"
+      }
+    },
+
+    "safety_confirmation_patterns": {
+      "approach": "No explicit safety rules in core, delegated to skills",
+      "confirmation_method": "Skills implement get_response() for confirmations",
+      "context_enforcement": "Keywords can be set/removed for safe interactions"
+    },
+
+    "regex_keyword_matching": {
+      "implementation": "Adapt engine with named capture groups",
+      "registration": "register_adapt_regex(regex_str)",
+      "pattern_format": "(?P<EntityName>pattern1|pattern2)",
+      "skill_isolation": "Keywords prefixed with skill_id for namespacing",
+      "munging_process": "Automatic skill_id prefix addition to prevent collisions"
+    },
+
+    "mode_state_management": {
+      "techniques": [
+        "Active skill tracking with timestamps",
+        "Intent enable/disable mechanism",
+        "Cross-skill context setting/removal",
+        "Display mode management via DisplayManager"
+      ],
+      "state_persistence": "No built-in persistence in intent service",
+      "mode_transitions": "Triggered by intent matches and skill requests"
+    }
+  },
+
+  "2_home_assistant": {
+    "framework": "Home Assistant - Home Automation",
+    "url": "https://github.com/home-assistant/core",
+    
+    "intent_representation": {
+      "main_classes": [
+        "Intent - Core intent object with slots",
+        "IntentHandler - Base class for all handlers",
+        "DynamicServiceIntentHandler - Targets service calls",
+        "ServiceIntentHandler - Direct service mapping",
+        "IntentResponse - Handler result wrapper"
+      ],
+      "intent_structure": {
+        "intent_type": "string (e.g., 'HassTurnOn', 'HassToggle')",
+        "slots": "dict[str, slot_info] - Extracted parameters",
+        "context": "Context object with source tracking",
+        "device_id": "optional string for device targeting",
+        "platform": "string - Intent source (e.g., 'hassil', 'alexa')"
+      },
+      "predefined_intents": [
+        "INTENT_TURN_OFF",
+        "INTENT_TURN_ON",
+        "INTENT_TOGGLE",
+        "INTENT_GET_STATE",
+        "INTENT_SET_POSITION",
+        "INTENT_START_TIMER",
+        "INTENT_CANCEL_TIMER"
+      ]
+    },
+
+    "confidence_scoring_mechanisms": {
+      "approach": "Entity matching with constraint validation",
+      "scoring_layers": [
+        "Domain matching - Check required domains",
+        "Device class filtering - Check supported device classes",
+        "Feature matching - Check required entity features",
+        "State matching - Check required entity states",
+        "Name/area/floor matching - Entity identification"
+      ],
+      "match_result_structure": {
+        "is_match": "bool",
+        "no_match_reason": "MatchFailedReason enum",
+        "states": "list[State] - Matched entity states",
+        "areas": "list[Area]",
+        "floors": "list[Floor]",
+        "devices": "list[DeviceEntry]"
+      }
+    },
+
+    "intent_constraints_validation": {
+      "class": "MatchTargetsConstraints",
+      "required_fields": [
+        "name: str | None - Entity name or alias",
+        "area_name: str | None - Area identifier",
+        "floor_name: str | None - Floor identifier",
+        "domains: Collection[str] | None - Required domains (e.g., 'light')",
+        "device_classes: Collection[str] | None - Device classes",
+        "features: int | None - Required entity features (bitmask)",
+        "states: Collection[str] | None - Required entity states",
+        "assistant: str | None - Assistant platform filter",
+        "single_target: bool - Restrict to exactly one match"
+      ],
+      "constraint_matching_algorithm": "async_match_targets() with sequential filtering"
+    },
+
+    "intent_slots": {
+      "definition": "Parameters extracted from user intent",
+      "slot_types": [
+        "required_slots: dict[str, IntentSlotInfo]",
+        "optional_slots: dict[str, IntentSlotInfo]"
+      ],
+      "slot_validation": "Schema-based validation with Pydantic",
+      "slot_example": {
+        "name": "Entity name slot",
+        "area": "Area identifier slot",
+        "floor": "Floor identifier slot",
+        "domain": "Domain filter slot",
+        "device_class": "Device class filter slot"
+      }
+    },
+
+    "automation_triggers_and_conditions": {
+      "trigger_types": [
+        "state trigger - Entity state changes",
+        "numeric_state trigger - Numeric comparisons",
+        "time_pattern trigger - Cron-like scheduling",
+        "event trigger - Bus events",
+        "device_automation trigger - Device-specific events"
+      ],
+      "condition_evaluation": {
+        "synchronous": "Check conditions when triggered",
+        "trace_enabled": "All conditions and actions traced",
+        "skip_condition_option": "Allow skipping condition checks"
+      },
+      "state_change_matching": {
+        "from_state": "Previous state value",
+        "to_state": "New state value",
+        "attribute": "State attribute to monitor",
+        "for_duration": "Time duration constraint"
+      }
+    },
+
+    "finite_state_machine_patterns": {
+      "automation_states": [
+        "enabled/disabled",
+        "triggered/idle",
+        "running_action"
+      ],
+      "state_transitions": {
+        "trigger_fired": "Conditions check → Action execution",
+        "condition_failed": "Abort automation execution",
+        "action_completed": "Return to idle state",
+        "automation_disabled": "Detach all triggers"
+      },
+      "trace_system": "Captures state at each step (FSM audit trail)"
+    },
+
+    "safety_and_confirmation_rules": {
+      "approach": "Constraints-based access control",
+      "mechanisms": [
+        "Device class validation - Only certain devices can execute intent",
+        "Feature matching - Entity must support required features",
+        "Area/floor scoping - Restrict to specific areas",
+        "Assistant filtering - Intent available to specific assistants",
+        "Response validation - Handlers return success/failed results"
+      ],
+      "failure_handling": {
+        "MatchFailedError": "Raised when constraints not met",
+        "IntentHandleError": "Raised when service call fails",
+        "error_response": "Include failed targets in response"
+      }
+    },
+
+    "keyword_and_regex_patterns": {
+      "approach": "Entity name and slot matching instead of regex",
+      "entity_resolution": "async_match_targets() fuzzy matching on names",
+      "regex_avoidance": "Uses structured entity metadata instead",
+      "alias_support": "Entity aliases stored in registry for matching"
+    },
+
+    "mode_and_state_management": {
+      "automation_entity": "ToggleEntity tracking automation on/off state",
+      "active_state_persistence": "Stored in `.enabled` attribute",
+      "mode_attribute": "ATTR_MODE for automation execution modes",
+      "trigger_state_tracking": "Records trigger description and context"
+    },
+
+    "response_generation": {
+      "response_types": [
+        "IntentResponseType.QUERY_ANSWER - Information queries",
+        "IntentResponseType.ACTION - Action execution"
+      ],
+      "response_targets": {
+        "type": "IntentResponseTargetType (ENTITY, AREA, FLOOR)",
+        "name": "Target friendly name",
+        "id": "Target identifier"
+      },
+      "speech_template": "format_string with {target} substitution"
+    }
+  },
+
+  "3_open_assistant": {
+    "framework": "Open-Assistant - Community-Driven AI",
+    "url": "https://github.com/LAION-AI/Open-Assistant",
+    
+    "intent_representation": {
+      "approach": "Implicit through message role and content",
+      "message_structure": {
+        "role": "'prompter' | 'assistant'",
+        "content": "string - The message text",
+        "id": "UUID - Message identifier",
+        "state": "MessageState enum",
+        "chat_id": "UUID - Conversation ID"
+      },
+      "message_state_machine": {
+        "states": [
+          "manual - Manually created",
+          "pending - Queued for processing",
+          "in_progress - Being generated",
+          "complete - Finished generation",
+          "aborted_by_worker - Worker cancelled",
+          "cancelled - User cancelled",
+          "timeout - Generation timeout"
+        ]
+      }
+    },
+
+    "message_tree_state_machine": {
+      "workflow_states": [
+        "INITIAL_PROMPT_REVIEW - Initial spam/quality check",
+        "GROWING - Collecting assistant/prompter responses",
+        "RANKING - Comparing response alternatives",
+        "READY_FOR_SCORING - Prepared for evaluator models",
+        "SCORING - Model evaluation in progress",
+        "READY_FOR_EXPORT - Approved for dataset export",
+        "ABORTED_LOW_GRADE - Failed quality threshold",
+        "HALTED_BY_MODERATOR - Manual intervention",
+        "BACKLOG_RANKING - Pending ranking tasks"
+      ],
+      "state_transitions": "Driven by task completion and quality thresholds",
+      "goal_tree_size": "Configurable target message count per tree"
+    },
+
+    "safety_parameters_and_levels": {
+      "safety_levels": "Range 0-9 (0=no safety, 9=maximum strictness)",
+      "safety_validation": "@pydantic.validator('level'): v in [0, 9]",
+      "safety_triggering": "('caution' in label AND level > 1) OR ('intervention' in label AND level > 0)",
+      "safety_response_format": {
+        "safe_prompt": "Modified prompt with instructions",
+        "safety_label": "Classification label",
+        "safety_rots": "Rules of thumbs guidance"
+      }
+    },
+
+    "safety_labels_and_rules": {
+      "safety_labels": [
+        "__casual__",
+        "__possibly_needs_caution__",
+        "__probably_needs_caution__",
+        "__needs_caution__",
+        "__needs_intervention__"
+      ],
+      "safety_rots": "Rules of thumbs - Guidance text joined with 'and'",
+      "parsing_pattern": "Split on <sep> delimiter, strip tags",
+      "safe_prompt_generation": "Prepend instruction: 'Answer...with {label}...that {rots}: '"
+    },
+
+    "filtering_and_moderation": {
+      "message_filtering": [
+        "deleted flag - Message marked deleted",
+        "synthetic flag - Machine-generated or synthetic",
+        "rank field - Ranking position if multi-branch"
+      ],
+      "labeling_system": {
+        "label_types": [
+          "spam",
+          "offensive",
+          "pii",
+          "hate_speech",
+          "sexual_content",
+          "quality (1-5 scale)",
+          "helpfulness (1-5 scale)",
+          "creativity (1-5 scale)",
+          "humor (1-5 scale)"
+        ]
+      },
+      "export_filters": {
+        "include_deleted": "Include deleted messages",
+        "include_synthetic": "Include ML-generated messages",
+        "state_filter": "Filter by message tree state",
+        "lang_filter": "Filter by language code"
+      }
+    },
+
+    "task_system": {
+      "task_types": [
+        "initial_prompt - Create initial user prompts",
+        "assistant_reply - Generate assistant responses",
+        "prompter_reply - Create user follow-up responses",
+        "rank_initial_prompts - Rank initial prompts",
+        "rank_assistant_replies - Rank assistant responses",
+        "rank_prompter_replies - Rank user responses",
+        "label_initial_prompt - Label/classify prompts",
+        "label_assistant_reply - Label responses",
+        "label_prompter_reply - Label user messages"
+      ],
+      "task_categories": [
+        "Create - Generate new content",
+        "Evaluate - Rank/compare content",
+        "Label - Classify/annotate content",
+        "Random - Random task selection"
+      ]
+    },
+
+    "plugin_integration": {
+      "plugin_entry_structure": {
+        "url": "Plugin endpoint URL",
+        "enabled": "bool - Plugin active status",
+        "trusted": "bool - Trust level",
+        "spec": "Plugin specification object",
+        "plugin_config": "Plugin configuration"
+      },
+      "plugin_response_tracking": {
+        "event_type": "'plugin_intermediate'",
+        "current_plugin_thought": "Reasoning",
+        "current_plugin_action_taken": "Action type",
+        "current_plugin_action_input": "Input parameters",
+        "current_plugin_action_response": "Response output"
+      }
+    },
+
+    "finite_state_machine_patterns": {
+      "message_state_transitions": {
+        "pending": "→ in_progress (worker starts)",
+        "in_progress": "→ complete (normal finish)",
+        "in_progress": "→ aborted_by_worker (worker error)",
+        "any_state": "→ cancelled (user cancels)",
+        "in_progress": "→ timeout (generation timeout)"
+      },
+      "tree_state_transitions": {
+        "INITIAL_PROMPT_REVIEW": "→ GROWING (if approved) or ABORTED_LOW_GRADE",
+        "GROWING": "→ RANKING (enough responses collected)",
+        "RANKING": "→ READY_FOR_SCORING (ranking complete)",
+        "READY_FOR_SCORING": "→ READY_FOR_EXPORT or ABORTED_LOW_GRADE"
+      }
+    },
+
+    "safety_confidence_scoring": {
+      "approach": "Model-based safety classification with ROTs",
+      "model": "Blade2Blade or alternative safety model",
+      "input_format": "|prompter|text|endoftext|",
+      "output_parsing": "regex: r'<pad>|</s>' removal, split on <sep>",
+      "confidence_threshold": "Configurable per safety level",
+      "confidence_values": "Model output probability scores"
+    },
+
+    "sample_safety_check_flow": {
+      "step1": "Send prompt to safety model",
+      "step2": "Receive classification (label + ROTs)",
+      "step3": "Check if safety_triggered(label, level)",
+      "step4": "If triggered: modify prompt with prepare_safe_prompt()",
+      "step5": "Return SafePromptResponse with modifications"
+    },
+
+    "mode_detection_and_state": {
+      "conversation_mode": "Tracked via InferenceMessage.role",
+      "model_config_mode": "Stored in work_parameters.model_config",
+      "sampling_mode": "Configured via SamplingParameters (temperature, top_p, etc.)",
+      "plugin_mode": "Active plugins tracked in work_parameters.plugins",
+      "state_tracking": "All parameters stored in work_parameters on each message"
+    }
+  },
+
+  "4_comparative_architecture_patterns": {
+    "intent_parsing_approaches": {
+      "mycroft": "Rule-based (keywords/regex) + Neural (Padatious)",
+      "home_assistant": "Constraint-based entity targeting + slot extraction",
+      "open_assistant": "Implicit role-based + explicit task classification",
+      "rasa": "ML-based intent classification + entity extraction (not analyzed)"
+    },
+
+    "confidence_scoring": {
+      "mycroft": "Hardcoded thresholds (0.95/0.8/0.5)",
+      "home_assistant": "Constraint matching + feature validation",
+      "open_assistant": "Safety model confidence + quality ratings",
+      "recommendation": "Multi-level thresholding with escalation strategy"
+    },
+
+    "state_machine_patterns": {
+      "mycroft": "Active skills + context frames (shallow FSM)",
+      "home_assistant": "Automation enabled/disabled + trigger states (explicit)",
+      "open_assistant": "Message state + tree workflow state (complex)",
+      "recommendation": "Layered FSM: mode state + conversation state + safety state"
+    },
+
+    "safety_rule_implementation": {
+      "mycroft": "No built-in rules (delegated to skills)",
+      "home_assistant": "Constraint-based ACL (domains, features, capabilities)",
+      "open_assistant": "Safety label levels + rules-of-thumbs",
+      "recommendation": "Hierarchical: ACL + confidence thresholds + safety labeling"
+    },
+
+    "keyword_regex_matching": {
+      "mycroft": "Full regex support with named groups",
+      "home_assistant": "Entity name fuzzy matching (no regex)",
+      "open_assistant": "String contains + state matching",
+      "recommendation": "Hybrid: keyword trie for speed + regex for complex"
+    }
+  },
+
+  "5_recommendation_architecture": {
+    "suggested_pattern": "Hybrid multi-service approach based on synthesis",
+    
+    "core_components": {
+      "intent_classifier": {
+        "service": "Use Adapt-like keyword system + ML fallback",
+        "confidence_levels": [
+          "0.95+ = Execute immediately (high confidence)",
+          "0.8-0.95 = Execute with confirmation",
+          "0.5-0.8 = Ask for clarification",
+          "< 0.5 = Reject and ask again"
+        ]
+      },
+
+      "state_machine": {
+        "layers": [
+          "Conversation state: idle → listening → processing → responding",
+          "Intent state: no_intent → matching → ranked → executable",
+          "Safety state: unchecked → checked → approved → executed",
+          "Mode state: normal → voice → hands_free → safe_mode"
+        ]
+      },
+
+      "safety_rules": {
+        "implementation": [
+          "Level 0: No safety checks",
+          "Level 1: Basic label filtering (hide dangerous)",
+          "Level 2: Confirmation required for caution level",
+          "Level 3: Hard block intervention level + specialist review",
+          "Level 4-9: Progressive strictness with ROTs"
+        ]
+      },
+
+      "entity_extraction": {
+        "hierarchy": [
+          "Exact keyword match (fast)",
+          "Fuzzy name match (area/device names)",
+          "Regex patterns (complex) ",
+          "Contextual inference (from history)"
+        ]
+      }
+    },
+
+    "class_structure_template": {
+      "Intent": {
+        "fields": [
+          "intent_type: string",
+          "confidence: float",
+          "slots: dict[str, any]",
+          "entities: list[Entity]",
+          "safety_label: string",
+          "requires_confirmation: bool"
+        ]
+      },
+
+      "IntentMatch": {
+        "fields": [
+          "service: string (Adapt/Neural/Fallback)",
+          "intent_type: string",
+          "intent_data: dict",
+          "entities: list[Entity]",
+          "confidence: float",
+          "is_safe: bool"
+        ]
+      },
+
+      "SafetyContext": {
+        "fields": [
+          "safety_level: int (0-9)",
+          "safety_label: string",
+          "rots: list[string] (rules of thumbs)",
+          "confidence: float",
+          "action: string (allow/confirm/deny)"
+        ]
+      }
+    }
+  }
+}

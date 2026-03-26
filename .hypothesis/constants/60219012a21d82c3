@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\execution\vision\event_engine.py
+# hypothesis_version: 6.151.9
+
+[3.5, 'ENTRY', 'EXIT', 'MOTION', 'bbox', 'center', 'chair', 'door', 'label', 'laptop', 'left', 'object', 'person', 'phone', 'right', 'type', 'velocity']

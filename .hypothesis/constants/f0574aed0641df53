@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\execution\executor.py
+# hypothesis_version: 6.151.9
+
+[', ', 'APPROVED', 'BLOCKED_BY_SAFETY', 'CLICK_FAILED', 'CLICK_INDEX', 'CLICK_NAME', 'Click failed.', 'EXECUTION_FAILURE', 'Execution blocked.', 'FILE_OPERATION', 'INVALID_DECISION', 'INVALID_INDEX', 'INVALID_NAME', 'MISSING_ACTION', 'NOT_APPROVED', 'OPEN_APP', 'READ_SCREEN', 'SYSTEM_CONTROL', 'UIA service error.', 'UIA_ERROR', 'UNSUPPORTED_ACTION', 'action', 'blocked_reason', 'confirmed', 'elements', 'execution', 'index', 'message', 'name', 'parameters', 'risk_level', 'status', 'success', 'target', 'unknown window', 'window']

@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\router\decision_router.py
+# hypothesis_version: 6.151.9
+
+['ACTION_NOT_APPROVED', 'APPROVED', 'CALCULATE', 'GET_TIME', 'KNOWLEDGE_QUERY', 'NO_DECISION', 'VISION_QUERY', 'action', 'router', 'status', 'target', 'who is', 'who was']

@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\knowledge\knowledge_engine.py
+# hypothesis_version: 6.151.9
+
+[200, '(?<=[.!?])\\s+', '.', '?', 'INVALID_QUERY', 'KNOWLEDGE_ERROR', 'NO_RESULT', 'User-Agent', 'action', 'define', 'explain', 'extract', 'format', 'json', 'knowledge', 'limit', 'may refer to', 'namespace', 'opensearch', 'search', 'target', 'tell me about', 'what is', 'what was', 'who is', 'who was']

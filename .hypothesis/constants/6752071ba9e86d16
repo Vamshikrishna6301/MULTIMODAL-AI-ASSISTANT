@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\knowledge\llm_engine.py
+# hypothesis_version: 6.151.9
+
+[0.2, 0.9, 200, 512, '(?<=[.!?])\\s+', 'LLM_CONNECTION_ERROR', 'LLM_EXCEPTION', 'NO_QUERY', '\\s+', "^here( is|'s)[,!\\s]*", '^in this case[,!\\s]*', '^sure[,!\\s]*', 'knowledge', 'model', 'num_ctx', 'num_predict', 'num_thread', 'options', 'prompt', 'response', 'stream', 'target', 'temperature', 'tinyllama', 'top_p']

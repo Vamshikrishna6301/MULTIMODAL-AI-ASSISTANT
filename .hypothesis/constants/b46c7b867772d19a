@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\execution\adapters\windows_app.py
+# hypothesis_version: 6.151.9
+
+['APP_NOT_FOUND', 'APP_OPEN_FAILED', 'NO_APP_NAME', 'calc', 'calc.exe', 'calculator', 'cmd', 'cmd.exe', 'execution', 'explorer', 'explorer.exe', 'mspaint.exe', 'notepad', 'notepad.exe', 'paint']

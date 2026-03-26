@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\core\intent_schema.py
+# hypothesis_version: 6.151.9
+
+[0.0, 0.5, 0.75, 0.9, 1.0, 'action', 'blocked_reason', 'confidence', 'intent_type', 'keyword', 'mode', 'parameters', 'risk_level', 'session_id', 'target', 'text', 'timestamp', 'unknown']

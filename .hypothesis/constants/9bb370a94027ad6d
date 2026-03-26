@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\execution\dispatcher.py
+# hypothesis_version: 6.151.9
+
+['FILE_OPERATION', 'OPEN_APP', 'SEARCH', 'SYSTEM_CONTROL', 'TYPE_TEXT', 'UNSUPPORTED_ACTION', 'VISION', 'action', 'browser', 'chrome', 'edge', 'execution', 'target']

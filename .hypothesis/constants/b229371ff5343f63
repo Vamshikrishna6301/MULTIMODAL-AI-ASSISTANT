@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\execution\vision\scene_graph_engine.py
+# hypothesis_version: 6.151.9
+
+[0.15, 0.3, 0.5, ' is ', ', ', '. ', 'Empty scene', 'I see: ', 'above', 'bbox', 'below', 'chair', 'cup', 'distance', 'interactions', 'label', 'left of', 'nearby', 'object1', 'object2', 'overlapping', 'person', 'phone', 'relationships', 'relative_position', 'right of', 'scene_description', 'separate', 'spatial_relationship', 'unknown', 'very close']

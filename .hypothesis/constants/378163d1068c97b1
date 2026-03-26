@@ -1,0 +1,4 @@
+# file: C:\Users\katka\Documents\FSD project\KRISHNA\core\context_memory.py
+# hypothesis_version: 6.151.9
+
+[0.8, 0.85, 'DELETE', 'OPEN_APP', 'OPEN_FILE', 'QUESTION', 'SEARCH', 'SYSTEM_CONTROL', 'history_size', 'inference_confidence', 'inferred_from', 'it', 'last_app', 'last_file', 'last_topic', 'previous_topic', 'reference_resolved', 'session_id', 'that', 'this', 'topic']
