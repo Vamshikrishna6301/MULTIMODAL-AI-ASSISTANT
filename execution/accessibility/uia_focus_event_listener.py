@@ -145,10 +145,9 @@ class UIFocusEventListener:
                         start = time.time()
                         pythoncom.PumpWaitingMessages()
                         if time.time() - start > 1.0:
-                            print("Focus scan took too long")
+                            pass
                         time.sleep(0.05)
                     except Exception as e:
-                        print("Focus listener recovered from error:", e)
                         time.sleep(0.3)
             finally:
                 try:

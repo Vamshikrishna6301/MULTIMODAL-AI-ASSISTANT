@@ -266,10 +266,10 @@ class AccessibilityNavigator:
         )
 
     def _nav_trace(self, message: str) -> None:
-        print(f"[NAV TRACE {time.time():.3f}] {message}")
+        pass
 
     def _uia_trace(self, message: str) -> None:
-        print(f"[UIA TRACE {time.time():.3f}] {message}")
+        pass
 
     def _window_name(self) -> str:
         try:

@@ -44,7 +44,6 @@ class VoiceLoop:
     MIN_TRANSCRIPT_CHARS = 2
 
     def __init__(self, runtime: AssistantRuntime = None):
-        print("Initializing Voice Assistant components...")
         self.logger = get_logger("voice.loop")
 
         self.runtime = runtime or AssistantRuntime()
@@ -70,7 +69,6 @@ class VoiceLoop:
         self._threads = []
 
     def start_production(self):
-        print("\nPRODUCTION VOICE ASSISTANT STARTED\n")
         if self.runtime.focus_listener is not None:
             try:
                 self.runtime.focus_listener.runtime = self.runtime
@@ -114,7 +112,6 @@ class VoiceLoop:
                     decision = self.vad.analyze(frame)
                     self._process_frame(frame, decision, sample_rate)
         except Exception as exc:
-            print("Mic worker crashed:", exc)
             self.runtime.stop()
 
     def _process_frame(self, frame: bytes, decision: VADDecision, sample_rate: int):
@@ -235,11 +232,10 @@ class VoiceLoop:
 
                 self._last_transcript = normalized
 
-                print(f"[PIPELINE] STT text: {normalized}")
-                print(f"\nHeard: {normalized}")
+                print(f"Heard: {normalized}")
                 self.text_queue.put(normalized)
             except Exception as exc:
-                print("STT worker crashed:", exc)
+                pass
 
     def _intent_worker(self):
         import pythoncom
@@ -293,7 +289,6 @@ class VoiceLoop:
         status = decision_dict.get("status")
         message = decision_dict.get("message")
 
-        print(f"[PIPELINE] fusion decision: {decision_dict}")
         print(f"Decision Status: {status}")
 
         if status == "BLOCKED":
@@ -312,23 +307,17 @@ class VoiceLoop:
         if status == "APPROVED":
             try:
                 if self.runtime.is_executing():
-                    print("[PIPELINE] assistant busy, ignoring command")
                     return
 
                 queue_size = self.command_queue.qsize()
                 queue_capacity = self.command_queue.maxsize
                 if queue_capacity > 0 and queue_size >= queue_capacity:
-                    print(
-                        f"[PIPELINE] command_queue full before put: size={queue_size} capacity={queue_capacity}"
-                    )
+                    pass
                 else:
-                    print(
-                        f"[PIPELINE] command_queue enqueue pending: size={queue_size} capacity={queue_capacity}"
-                    )
+                    pass
 
                 self._enqueue_command(decision_dict, text)
             except Exception as exc:
-                print(f"[PIPELINE] command_queue enqueue failed: {exc!r}")
                 self.tts.speak("Assistant is busy. Please try again.")
 
     def _execution_worker(self):
@@ -344,9 +333,6 @@ class VoiceLoop:
                     except queue.Empty:
                         continue
 
-                    print(
-                        f"[PIPELINE] execution dequeued: {decision_dict} queue_size={self.command_queue.qsize()}"
-                    )
                     response = None
 
                     self.runtime.start_execution()
@@ -355,18 +341,7 @@ class VoiceLoop:
                             "voice_execution_start",
                             action=decision_dict.get("action"),
                         )
-                        print(
-                            "[PIPELINE] execution start:",
-                            {
-                                "action": decision_dict.get("action"),
-                                "runtime_state": str(self.runtime.get_state()),
-                                "is_speaking": self.runtime.is_speaking(),
-                                "listening_blocked": self.runtime.is_listening_blocked(),
-                            },
-                        )
-
                         response = self.router.route(decision_dict)
-                        print(f"[PIPELINE] router response: {response}")
 
                         self.logger.debug(
                             "voice_execution_end",
@@ -383,10 +358,8 @@ class VoiceLoop:
 
                         if message:
                             print(f"Assistant: {message}")
-                            print(f"[PIPELINE] speaking: {message}")
 
                             metadata = getattr(response, "metadata", {}) or {}
-                            print(f"[PIPELINE] response metadata: {metadata}")
 
                             if (
                                 not metadata.get("suppress_tts")
@@ -394,11 +367,9 @@ class VoiceLoop:
                             ):
                                 self.tts.speak(message)
                     else:
-                        print("[PIPELINE] speaking: Done.")
                         self.tts.speak("Done.")
 
                 except Exception as exc:
-                    print(f"[PIPELINE] execution worker exception: {exc!r}")
                     self.logger.error("voice_execution_failed", exception=exc)
                     self.tts.speak("Execution failed.")
 
@@ -414,11 +385,9 @@ class VoiceLoop:
 
     def _enqueue_command(self, decision_dict: dict, text: str) -> None:
         if self.runtime.is_executing():
-            print("[PIPELINE] assistant busy, ignoring command")
             return
 
         if self.command_queue.qsize() > 0:
-            print("[PIPELINE] execution pending, dropping command")
             self.logger.warning(
                 "voice_command_dropped_execution_pending",
                 action=decision_dict.get("action"),
@@ -428,16 +397,12 @@ class VoiceLoop:
 
         try:
             self.command_queue.put_nowait(decision_dict)
-            print(
-                f"[PIPELINE] intent queued: {decision_dict} queue_size={self.command_queue.qsize()}"
-            )
             self.logger.debug(
                 "voice_command_enqueued",
                 action=decision_dict.get("action"),
                 text=text,
             )
         except queue.Full:
-            print("[PIPELINE] command_queue full, dropping command")
             self.logger.warning(
                 "voice_command_dropped_queue_full",
                 action=decision_dict.get("action"),

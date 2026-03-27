@@ -260,7 +260,7 @@ class ExecutionEngine:
 
         except Exception as e:
 
-            print("🔥 EXECUTION EXCEPTION:", repr(e))
+
 
             return self._error(
                 "An internal execution error occurred.",
@@ -635,7 +635,7 @@ class ExecutionEngine:
                 self.context_memory.last_file = target
 
         except Exception as e:
-            print("⚠️ Context update failed:", e)
+            pass
 
     # =====================================================
     # ERROR

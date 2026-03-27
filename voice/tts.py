@@ -42,7 +42,6 @@ class TTS:
             return
 
         text = text.strip()
-        print(f"[PIPELINE] TTS.speak called: {text}")
 
         # ---- Deduplicate speech ----
         if text == self._last_spoken:

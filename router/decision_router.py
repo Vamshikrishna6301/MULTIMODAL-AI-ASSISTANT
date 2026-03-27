@@ -44,13 +44,6 @@ class DecisionRouter:
     # =====================================================
 
     def route(self, decision) -> UnifiedResponse:
-        print(
-            "[PIPELINE] router.route start:",
-            {
-                "action": decision.get("action") if isinstance(decision, dict) else None,
-                "status": decision.get("status") if isinstance(decision, dict) else None,
-            },
-        )
 
         # 🔥 Defensive type checking
         if not isinstance(decision, dict):
@@ -119,14 +112,6 @@ class DecisionRouter:
         # --------------------------------------------------
 
         response = self.execution_engine.execute(decision)
-        print(
-            "[PIPELINE] router.route finish:",
-            {
-                "action": action,
-                "success": getattr(response, "success", False),
-                "spoken_message": getattr(response, "spoken_message", None),
-            },
-        )
         self._record_turn(decision, response)
         return response
 
